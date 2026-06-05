@@ -1,0 +1,246 @@
+/**
+ * TradeLog.tsx — Board Log UI
+ * Drop in @/components/TradeLog.tsx
+ * Shows every trade entry, close, signal, connection event live on screen.
+ * Use: import { TradeLog } from "@/components/TradeLog"
+ */
+
+import React, { useRef } from "react";
+import {
+  View, Text, ScrollView, TouchableOpacity,
+  StyleSheet, FlatList,
+} from "react-native";
+import { useTradeLog, type LogEntry } from "@/contexts/BotContext-FINAL";
+
+function logColor(type: LogEntry["type"]): string {
+  switch (type) {
+    case "TRADE_OPEN":  return "#00C896"; // green
+    case "TRADE_CLOSE": return "#FF6B6B"; // red
+    case "SIGNAL":      return "#4FC3F7"; // blue
+    case "CONNECT":     return "#FFD54F"; // yellow
+    case "ERROR":       return "#FF5252"; // bright red
+    default:            return "#B0BEC5"; // grey
+  }
+}
+
+function logIcon(type: LogEntry["type"]): string {
+  switch (type) {
+    case "TRADE_OPEN":  return "▲";
+    case "TRADE_CLOSE": return "▼";
+    case "SIGNAL":      return "◆";
+    case "CONNECT":     return "⬡";
+    case "ERROR":       return "✕";
+    default:            return "·";
+  }
+}
+
+function formatTime(ts: number): string {
+  return new Date(ts).toLocaleTimeString("en-GB", { hour12: false });
+}
+
+function LogRow({ item }: { item: LogEntry }) {
+  const color = logColor(item.type);
+  return (
+    <View style={styles.row}>
+      <Text style={[styles.icon, { color }]}>{logIcon(item.type)}</Text>
+      <Text style={styles.time}>{formatTime(item.timestamp)}</Text>
+      {item.pair && (
+        <Text style={[styles.pair, { color }]}>{item.pair}</Text>
+      )}
+      <Text style={styles.msg} numberOfLines={2}>{item.message}</Text>
+    </View>
+  );
+}
+
+export function TradeLog() {
+  const { logs, clearLog } = useTradeLog();
+  const flatRef = useRef<FlatList>(null);
+
+  return (
+    <View style={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
+        <View style={styles.headerLeft}>
+          <View style={styles.dot} />
+          <Text style={styles.headerTitle}>LIVE BOARD LOG</Text>
+        </View>
+        <View style={styles.headerRight}>
+          <Text style={styles.count}>{logs.length} entries</Text>
+          <TouchableOpacity onPress={clearLog} style={styles.clearBtn}>
+            <Text style={styles.clearText}>CLEAR</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Legend */}
+      <View style={styles.legend}>
+        {[
+          { type: "TRADE_OPEN"  as const, label: "Open"   },
+          { type: "TRADE_CLOSE" as const, label: "Close"  },
+          { type: "SIGNAL"      as const, label: "Signal" },
+          { type: "CONNECT"     as const, label: "Connect"},
+          { type: "ERROR"       as const, label: "Error"  },
+        ].map(({ type, label }) => (
+          <View key={type} style={styles.legendItem}>
+            <Text style={[styles.legendIcon, { color: logColor(type) }]}>{logIcon(type)}</Text>
+            <Text style={styles.legendLabel}>{label}</Text>
+          </View>
+        ))}
+      </View>
+
+      {/* Log entries */}
+      {logs.length === 0 ? (
+        <View style={styles.empty}>
+          <Text style={styles.emptyText}>Waiting for bot activity...</Text>
+          <Text style={styles.emptySubtext}>Connect MT5 and start the bot to see live logs here.</Text>
+        </View>
+      ) : (
+        <FlatList
+          ref={flatRef}
+          data={logs}
+          keyExtractor={item => item.id}
+          renderItem={({ item }) => <LogRow item={item} />}
+          style={styles.list}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          onContentSizeChange={() => flatRef.current?.scrollToOffset({ offset: 0, animated: false })}
+        />
+      )}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#0A0E1A",
+  },
+  header: {
+    flexDirection:   "row",
+    justifyContent:  "space-between",
+    alignItems:      "center",
+    paddingHorizontal: 16,
+    paddingVertical:  12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#1E2640",
+  },
+  headerLeft: {
+    flexDirection: "row",
+    alignItems:    "center",
+    gap:           8,
+  },
+  dot: {
+    width:           8,
+    height:          8,
+    borderRadius:    4,
+    backgroundColor: "#00C896",
+  },
+  headerTitle: {
+    color:          "#FFFFFF",
+    fontSize:       13,
+    fontWeight:     "700",
+    letterSpacing:  1.5,
+  },
+  headerRight: {
+    flexDirection: "row",
+    alignItems:    "center",
+    gap:           12,
+  },
+  count: {
+    color:    "#607D9F",
+    fontSize: 12,
+  },
+  clearBtn: {
+    paddingHorizontal: 10,
+    paddingVertical:    4,
+    borderRadius:       4,
+    borderWidth:        1,
+    borderColor:        "#1E2640",
+  },
+  clearText: {
+    color:        "#607D9F",
+    fontSize:     10,
+    fontWeight:   "700",
+    letterSpacing: 1,
+  },
+  legend: {
+    flexDirection:     "row",
+    paddingHorizontal: 16,
+    paddingVertical:    8,
+    gap:               16,
+    borderBottomWidth:  1,
+    borderBottomColor:  "#1A1F30",
+  },
+  legendItem: {
+    flexDirection: "row",
+    alignItems:    "center",
+    gap:            4,
+  },
+  legendIcon: {
+    fontSize: 10,
+  },
+  legendLabel: {
+    color:    "#607D9F",
+    fontSize: 10,
+  },
+  list: {
+    flex: 1,
+  },
+  listContent: {
+    paddingHorizontal: 12,
+    paddingTop:         8,
+    paddingBottom:     24,
+    gap:               2,
+  },
+  row: {
+    flexDirection:  "row",
+    alignItems:     "flex-start",
+    paddingVertical: 6,
+    paddingHorizontal: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: "#0F1320",
+    gap:             8,
+    flexWrap:        "nowrap",
+  },
+  icon: {
+    fontSize:   12,
+    width:      12,
+    marginTop:   2,
+  },
+  time: {
+    color:    "#607D9F",
+    fontSize: 11,
+    width:    60,
+    marginTop: 1,
+    fontVariant: ["tabular-nums"],
+  },
+  pair: {
+    fontSize:   11,
+    fontWeight: "700",
+    width:      60,
+    marginTop:   1,
+  },
+  msg: {
+    flex:      1,
+    color:     "#C5D0E0",
+    fontSize:  11,
+    lineHeight: 16,
+  },
+  empty: {
+    flex:           1,
+    alignItems:     "center",
+    justifyContent: "center",
+    paddingHorizontal: 40,
+    gap:            12,
+  },
+  emptyText: {
+    color:      "#607D9F",
+    fontSize:   15,
+    fontWeight: "600",
+  },
+  emptySubtext: {
+    color:     "#3D4F6B",
+    fontSize:  13,
+    textAlign: "center",
+  },
+});

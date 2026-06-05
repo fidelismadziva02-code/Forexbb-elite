@@ -1,0 +1,22 @@
+{
+  "expo": {
+    "name": "ForexBB Elite",
+    "slug": "forexbb-elite",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "backgroundColor": "#080A0F"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#080A0F"
+      },
+      "package": "com.forexbb.elite"
+    },
+    "plugins": [
+      "expo-router"
+    ]
+  }
+}
